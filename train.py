@@ -5,7 +5,7 @@ from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 
 
-from data_preprocess import get_dataset, EmojiToTextDataset
+from data_preprocess import get_text, get_dataset, EmojiToTextDataset
 from utils import plot_train
 
 
@@ -13,35 +13,42 @@ import argparse
 def get_args():
     parser = argparse.ArgumentParser(description="Train a T5 model with custom settings.")
     
+    parser.add_argument("--emoji_translate_model", type=str, default='gpt2', help="Model applied to translate the emoji from the input texts")
     parser.add_argument("--batch_size", type=int, default=16, help="Batch size for training")
     parser.add_argument("--lr", type=float, default=1e-5, help="Learning rate")
-    parser.add_argument("--epochs", type=int, default=20, help="Number of training epochs")
-    parser.add_argument("--model", type=str, default="t5-small", help="Model name or path")
+    parser.add_argument("--epochs", type=int, default=50, help="Number of training epochs")
+    parser.add_argument("--model", type=str, default="t5-small", help="Emojibag Model name or path")
 
     return parser.parse_args()
 
 
 if __name__ == "__main__":
+    
     args = get_args()
+
+    print("========== Parsed Arguments ==========")
+    for arg, value in vars(args).items():
+        print(f"{arg}: {value}")
+    print("======================================\n\n")
+
+
     BATCH_SIZE = args.batch_size
     LR = args.lr
     EPOCHS = args.epochs
     MODEL = args.model
+    Translate_Emoji_Model = args.emoji_translate_model
+
 
     # get the data ready
-    train = pd.read_parquet('emojibag_data/train-00000-of-00001.parquet')
-    test = pd.read_parquet('emojibag_data/test-00000-of-00001.parquet')
-    all_data = pd.concat([train, test])
-    label_select = [1, 2, 5, 6, 9, 14, 16, 19]
-    filtered_data = all_data[all_data["label"].isin(label_select)].reset_index(drop=True)
+    all_texts = get_text()
+    input_texts, target_texts = get_dataset(all_texts, model_name=Translate_Emoji_Model)
 
-    all_texts = filtered_data['text'].to_list()
-    all_labels = filtered_data['label'].to_list()
-    input_texts, target_texts = get_dataset(all_texts, all_labels)
+    print(f"[INFO] Total length of input emojibag data {len(input_texts)}\n\n\n[INFO] Training starts ...")
+
 
     # prepare the model and train
     model = T5ForConditionalGeneration.from_pretrained(MODEL)
-    tokenizer = T5Tokenizer.from_pretrained(MODEL)
+    tokenizer = T5Tokenizer.from_pretrained(MODEL, legacy=False)
     model.to("cuda" if torch.cuda.is_available() else "cpu")
 
     dataset = EmojiToTextDataset(
@@ -57,7 +64,7 @@ if __name__ == "__main__":
 
     best_loss = None
     loss_record = []
-    for epoch in tqdm(range(EPOCHS), desc='Training Process'):
+    for epoch in range(EPOCHS):
         model.train()
         for batch in loader:
             input_ids = batch["input_ids"].to(device)
@@ -79,9 +86,9 @@ if __name__ == "__main__":
             if loss.item() < best_loss:
                 print("[INFO] Saving the best model as .pt  ...")
                 best_loss = loss.item()
-                torch.save(model.state_dict(), f'{MODEL}_{EPOCHS}.pt')
+                torch.save(model.state_dict(), f'{MODEL}_{EPOCHS}_{Translate_Emoji_Model}.pt')
 
         
-    plot_train(loss_record, EPOCHS, save_name=f'{MODEL}_{EPOCHS}')
+    plot_train(loss_record, EPOCHS, save_name=f'{MODEL}_{EPOCHS}_{Translate_Emoji_Model}')
 
 
