@@ -3,6 +3,7 @@
 
 ## 🎯 Goal of the project
 The goal of this project is to create a model that can explain the meaning of emojis in different textual contexts, like the word-bag model. Emojis can convey very different emotions depending on the surrounding text. For example:
+
 	•	Ahh, I see 😄 ...   → shows happiness or relief
 	•	Ahh, I see 😭 that's fine   → shows disappointment or sadness
 	•	Ahh, I see 😓 call you later   → shows worry or stress
