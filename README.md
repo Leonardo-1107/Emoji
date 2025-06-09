@@ -43,7 +43,7 @@ This project explores the impact of **explicit emoji-to-text translation** on se
     python train.py --emoji_translate_model gpt2 --model t5-small
 
     # with ChatGPT-4o-mini as emoji-to-text data processor
-    python train.py --emoji_translate_model gpt2 --model t5-small
+    python train.py --emoji_translate_model chatgpt --model t5-small
    ```
 
 3. **Evaluate Performance**  
